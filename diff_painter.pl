@@ -28,6 +28,7 @@ exit();
 
 sub process_input
 {
+    $ENV{'DIFF_COLOR_HTML'} && print '<html>' && local $\ = "<br/>";
     while (<>) {
         push_onto_lines(processed_current_line());
 
@@ -48,6 +49,7 @@ sub process_input
     } else {
         flush_all_lines();
     }
+    $ENV{'DIFF_COLOR_HTML'} && print '</html>';
 }
 
 sub handle_via_merge
@@ -70,7 +72,7 @@ sub print_lines { print map { $_->{'colored_line'} } @_ ? @_ : @lines };
 sub set_lines_to    {      @lines = @_; rebuild_lines_summary(); }
 sub push_onto_lines { push @lines,  @_; rebuild_lines_summary(); }
 
-sub rebuild_lines_summary { $lines_summary = join '', map { $_->{'type'} } @lines }
+sub rebuild_lines_summary { $lines_summary = $ENV{'DIFF_COLOR_HTML'} ? '<br/>' : ''.join '', map { $_->{'type'} } @lines }
 
 sub flush_merged_lines
 {
@@ -395,10 +397,33 @@ sub original_version  { s/\A(--- \S+)(.*)/ clr(hilight(), old_line(),    $1) . c
 sub subtraction       { s/\A([-<])(.*)/    clr(hilight(), old_line(),    $1) . clr(old_line(),  $2) /e }
 sub header_line       { s/\A(.*)/          clr(           misc(),        $1)                        /e }
 
+sub html_color 
+{
+    my $color = shift;
+    return $color eq 'reset'
+         ? '</font>'
+         : $color eq 'reverse' 
+           ? ''
+           : '<font color="'
+            .{ 'magenta' => '#FF33FF',
+               'green'   => '#006600',
+               'red'     => '#FF0000',
+               'yellow'  => '#FFCC00',
+               'blue'    => '#0000FF',
+             }->{$_}
+            .'">'
+    ;
+}
+
+sub do_color 
+{
+    return $ENV{'DIFF_COLOR_HTML'} ? html_color(@_) : color(@_);
+}
+
 sub clr
 {
     my $string = pop;
-    return join('',  (map { color($_) } @_), $string, color('reset'));
+    return join('',  (map { do_color($_) } @_), $string, do_color('reset'));
 }
 
 1;
