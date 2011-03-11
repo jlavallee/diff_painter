@@ -28,8 +28,9 @@ exit();
 
 sub process_input
 {
-    $ENV{'DIFF_COLOR_HTML'} && print '<html>' && local $\ = "<br/>";
+    $ENV{'DIFF_COLOR_HTML'} && print '<html><head><style type="text/css">body { font-family:monospace; }</style></head><body>';
     while (<>) {
+        $ENV{'DIFF_COLOR_HTML'} && do { s/ /&nbsp;/g; s/\t/&nbsp;&nbsp;&nbsp;&nbsp;/g; s/^&nbsp;/ &nbsp;/g };
         push_onto_lines(processed_current_line());
 
         if (! do_horizontal_diffing()) {
@@ -49,7 +50,7 @@ sub process_input
     } else {
         flush_all_lines();
     }
-    $ENV{'DIFF_COLOR_HTML'} && print '</html>';
+    $ENV{'DIFF_COLOR_HTML'} && print '</body></html>';
 }
 
 sub handle_via_merge
@@ -67,12 +68,12 @@ sub flush_all_lines_leaving_only {
     set_lines_to(@_);
 }
 
-sub print_lines { print map { $_->{'colored_line'} } @_ ? @_ : @lines };
+sub print_lines { print map { $ENV{'DIFF_COLOR_HTML'} ? do { s/\n/<br\/>\n/g; } : 1; $_ } map { $_->{'colored_line'} } @_ ? @_ : @lines };
 
 sub set_lines_to    {      @lines = @_; rebuild_lines_summary(); }
 sub push_onto_lines { push @lines,  @_; rebuild_lines_summary(); }
 
-sub rebuild_lines_summary { $lines_summary = $ENV{'DIFF_COLOR_HTML'} ? '<br/>' : ''.join '', map { $_->{'type'} } @lines }
+sub rebuild_lines_summary { $lines_summary = join '', map { $_->{'type'} } @lines }
 
 sub flush_merged_lines
 {
@@ -344,7 +345,7 @@ sub line_marker_for_diff_type_counts
 {
     my $count = shift;
     return(($count->{$ADDITION} && $count->{$SUBTRACTION})
-        ? clr(hilight(), both_ways(), '*')
+        ? clr(hilight(), both_ways(), $ENV{'DIFF_COLOR_HTML'} ? '<br/>*' : '*')
         : $count->{$ADDITION}
             ? clr(hilight(), new_line(), '+')
             : clr(hilight(), old_line(), '-')
